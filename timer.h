@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 
-#define ARR_SIZE    20
+typedef void (*timer_callback_t)(void);
 
 /* Function prototypes ------------------------------------------------------- */
 
@@ -11,6 +11,6 @@
  *  @return true if the initialization was successfull and the port is operational,
  *          false otherwise
  */
-bool TIM_Init(void);
+bool TIM_Init(timer_callback_t callback);
 
 #endif /* TIMER_H */

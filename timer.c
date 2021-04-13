@@ -1,6 +1,4 @@
 #include "timer.h"
-#include "usart.h"
-#include <stdio.h>
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_rcc.h"
 
@@ -20,15 +18,13 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* extern variables */
-extern uint8_t state;
-extern uint8_t temp_arr[ARR_SIZE];
-extern uint16_t press_arr[ARR_SIZE];
 extern uint16_t period;
 
 /* TIM descriptor */
 static TIM_HandleTypeDef TimHandle;
 
-int iter = 0;
+static timer_callback_t m_callback;
+
 
 static void change_period(void)
 {
@@ -38,28 +34,13 @@ static void change_period(void)
 void TIMx_IRQHandler(void)
 {
     change_period();
-    char buffer [100];
     if (__HAL_TIM_GET_FLAG(&TimHandle, TIM_FLAG_UPDATE))
     {
         if (__HAL_TIM_GET_IT_SOURCE(&TimHandle, TIM_IT_UPDATE))
         {
-            if (state == 't')
-            {
-                (void)snprintf ( buffer, 100, "Temperature: %d st. C \n\r", temp_arr[iter++]);
-                 USART_WriteString(buffer);
-            }
-            else if (state == 'p')
-            {
-                (void)snprintf ( buffer, 100, "Pressure: %d hPa \n\r", press_arr[iter++]);
-                 USART_WriteString(buffer);
-            }
+            m_callback();
         }
         __HAL_TIM_CLEAR_IT(&TimHandle, TIM_IT_UPDATE);
-
-        if (iter == ARR_SIZE - 1)
-        {
-            iter = 0;
-        }
     }
 }
 
@@ -95,7 +76,7 @@ void HAL_TIM_MspDeInit(TIM_HandleTypeDef *htim)
     HAL_NVIC_DisableIRQ(TIMx_IRQn);
 }
 
-bool TIM_Init(void)
+bool TIM_Init(timer_callback_t callback)
 {
     // configure TIM
     TimHandle.Instance                 = TIMx;
@@ -112,6 +93,7 @@ bool TIM_Init(void)
         return false;
     }
 
+    m_callback = callback;
     HAL_TIM_Base_Start_IT(&TimHandle); 
 
     return true;
